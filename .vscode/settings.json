@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.inlayHints.chainingHints.enable": false,
+    "rust-analyzer.inlayHints.typeHints.enable": false,
+    "cSpell.enableFiletypes": [
+        "!rust"
+    ]
+}

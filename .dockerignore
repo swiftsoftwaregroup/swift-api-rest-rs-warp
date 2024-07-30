@@ -1,0 +1,12 @@
+.git
+.gitignore
+.vscode
+README.md
+
+target
+coverage
+
+docker
+
+.env
+*.db
