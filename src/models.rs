@@ -17,7 +17,7 @@ pub struct Book {
     pub cover_image: String,
 }
 
-#[derive(Insertable, Deserialize, ToSchema)]
+#[derive(Insertable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = books)]
 pub struct NewBook {
     #[schema(example = "The Rust Programming Language")]

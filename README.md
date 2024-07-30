@@ -73,7 +73,7 @@ Run `clippy` linter:
 cargo clippy -- --deny warnings
 
 # fix
-cargo clippy --fix
+cargo clippy --fix --allow-dirty
 ```
 
 ### Test
@@ -156,6 +156,9 @@ cargo add utoipa --features chrono
 cargo add utoipa-swagger-ui
 
 cargo add diesel_migrations
+
+# dev packages
+cargo add tokio-test --dev
 ```
 
 Install tools :
