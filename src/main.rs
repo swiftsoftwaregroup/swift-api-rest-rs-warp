@@ -9,7 +9,8 @@ mod schema;
 
 use models::{Book, NewBook};
 use std::sync::Arc;
-use warp::Filter;
+
+use warp::{Filter, Reply};
 
 use utoipa::OpenApi;
 
@@ -58,39 +59,14 @@ async fn main() {
         .and(warp::get())
         .map(|| warp::reply::json(&ApiDocs::openapi()));
 
-    let swagger_ui = warp::path("docs")
-        .and(warp::get())
-        .and(warp::path::end())
-        .map(|| {
-            warp::reply::html(r#"
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="utf-8" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1" />
-                    <meta name="description" content="SwaggerUI" />
-                    <title>SwaggerUI</title>
-                    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css" />
-                </head>
-                <body>
-                    <div id="swagger-ui"></div>
-                    <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js" crossorigin></script>
-                    <script>
-                        window.onload = () => {
-                            window.ui = SwaggerUIBundle({
-                                url: '/openapi.json',
-                                dom_id: '#swagger-ui',
-                            });
-                        };
-                    </script>
-                </body>
-                </html>
-                "#.to_string())
-        });
+    let swagger_ui = serve_swagger_ui();
+
+    let redoc_ui = serve_redoc_ui();
 
     let routes = api
         .or(api_docs)
         .or(swagger_ui)
+        .or(redoc_ui)
         .with(warp::cors().allow_any_origin())
         .recover(errors::handle_rejection);
 
@@ -169,4 +145,65 @@ mod filters {
     ) -> impl Filter<Extract = (Arc<db::DbPool>,), Error = std::convert::Infallible> + Clone {
         warp::any().map(move || db.clone())
     }
+}
+
+fn serve_swagger_ui() -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+    warp::path("docs")
+    .and(warp::get())
+    .and(warp::path::end())
+    .map(|| {
+        warp::reply::html(r#"
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <meta name="description" content="SwaggerUI" />
+                <title>SwaggerUI</title>
+                <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css" />
+            </head>
+            <body>
+                <div id="swagger-ui"></div>
+                <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js" crossorigin></script>
+                <script>
+                    window.onload = () => {
+                        window.ui = SwaggerUIBundle({
+                            url: '/openapi.json',
+                            dom_id: '#swagger-ui',
+                        });
+                    };
+                </script>
+            </body>
+            </html>
+            "#.to_string())
+    })
+}
+
+fn serve_redoc_ui() -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+    warp::path("redoc")
+        .and(warp::get())
+        .and(warp::path::end())
+        .map(|| {
+            warp::reply::html(r#"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>API Documentation</title>
+                    <meta charset="utf-8"/>
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+                    <style>
+                        body {{
+                            margin: 0;
+                            padding: 0;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <redoc spec-url='/openapi.json'></redoc>
+                    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"> </script>
+                </body>
+                </html>
+                "#.to_string())
+        })
 }
