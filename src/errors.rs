@@ -1,6 +1,5 @@
-use std::convert::Infallible;
 use thiserror::Error;
-use warp::{http::StatusCode, Rejection, Reply};
+use warp::reject::Reject;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -8,35 +7,23 @@ pub enum Error {
     DatabaseError(#[from] diesel::result::Error),
     #[error("not found")]
     NotFound,
+    #[error("invalid data")]
+    InvalidData,
 }
 
-impl warp::reject::Reject for Error {}
+impl Reject for Error {}
 
-pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
-    let code;
-    let message;
-
-    if err.is_not_found() {
-        code = StatusCode::NOT_FOUND;
-        message = "Not Found";
-    } else if let Some(error) = err.find::<Error>() {
-        match error {
-            Error::DatabaseError(_) => {
-                code = StatusCode::INTERNAL_SERVER_ERROR;
-                message = "Internal Server Error";
-            }
-            Error::NotFound => {
-                code = StatusCode::NOT_FOUND;
-                message = "Not Found";
-            }
-        }
-    } else if err.find::<warp::reject::MethodNotAllowed>().is_some() {
-        code = StatusCode::METHOD_NOT_ALLOWED;
-        message = "Method Not Allowed";
+pub async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, warp::Rejection> {
+    if let Some(error) = err.find::<Error>() {
+        let (code, message) = match error {
+            Error::DatabaseError(_) => (warp::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error"),
+            Error::NotFound => (warp::http::StatusCode::NOT_FOUND, "Not Found"),
+            Error::InvalidData => (warp::http::StatusCode::BAD_REQUEST, "Invalid Data"),
+        };
+        Ok(warp::reply::with_status(message.to_string(), code))
+    } else if err.is_not_found() {
+        Ok(warp::reply::with_status("Not Found".to_string(), warp::http::StatusCode::NOT_FOUND))
     } else {
-        code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = "Internal Server Error";
+        Ok(warp::reply::with_status("Internal Server Error".to_string(), warp::http::StatusCode::INTERNAL_SERVER_ERROR))
     }
-
-    Ok(warp::reply::with_status(message.to_string(), code))
 }

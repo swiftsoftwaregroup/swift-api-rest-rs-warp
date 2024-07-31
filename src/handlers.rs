@@ -1,8 +1,8 @@
+use warp::{Reply, Rejection};
 use crate::db;
-use crate::errors::Error;
 use crate::models::NewBook;
+use crate::errors::Error;
 use std::sync::Arc;
-use warp::{Rejection, Reply};
 
 #[utoipa::path(
     get,
@@ -14,9 +14,9 @@ use warp::{Rejection, Reply};
     tag = "Books"
 )]
 pub async fn list_books(db: Arc<db::DbPool>) -> Result<impl Reply, Rejection> {
-    let books =
-        db::get_all_books(&db).map_err(|e| warp::reject::custom(Error::DatabaseError(e)))?;
-    Ok(warp::reply::json(&books))
+    db::get_all_books(&db)
+        .map(|books| warp::reply::json(&books))
+        .map_err(|e| warp::reject::custom(Error::DatabaseError(e)))
 }
 
 #[utoipa::path(
@@ -25,14 +25,19 @@ pub async fn list_books(db: Arc<db::DbPool>) -> Result<impl Reply, Rejection> {
     request_body = NewBook,
     responses(
         (status = 200, description = "Book created successfully", body = Book),
+        (status = 400, description = "Invalid book data"),
         (status = 500, description = "Internal server error")
     ),
     tag = "Books"
 )]
 pub async fn create_book(new_book: NewBook, db: Arc<db::DbPool>) -> Result<impl Reply, Rejection> {
-    let book = db::create_book(&db, new_book)
-        .map_err(|e| warp::reject::custom(Error::DatabaseError(e)))?;
-    Ok(warp::reply::json(&book))
+    if new_book.title.is_empty() || new_book.author.is_empty() {
+        return Err(warp::reject::custom(Error::InvalidData));
+    }
+
+    db::create_book(&db, new_book)
+        .map(|book| warp::reply::json(&book))
+        .map_err(|e| warp::reject::custom(Error::DatabaseError(e)))
 }
 
 #[utoipa::path(
@@ -49,11 +54,11 @@ pub async fn create_book(new_book: NewBook, db: Arc<db::DbPool>) -> Result<impl 
     tag = "Books"
 )]
 pub async fn get_book(id: i32, db: Arc<db::DbPool>) -> Result<impl Reply, Rejection> {
-    let book = db::get_book(&db, id).map_err(|e| match e {
-        diesel::result::Error::NotFound => warp::reject::custom(Error::NotFound),
-        _ => warp::reject::custom(Error::DatabaseError(e)),
-    })?;
-    Ok(warp::reply::json(&book))
+    match db::get_book(&db, id) {
+        Ok(book) => Ok(warp::reply::json(&book)),
+        Err(diesel::result::Error::NotFound) => Err(warp::reject::custom(Error::NotFound)),
+        Err(e) => Err(warp::reject::custom(Error::DatabaseError(e))),
+    }
 }
 
 #[utoipa::path(
@@ -62,6 +67,7 @@ pub async fn get_book(id: i32, db: Arc<db::DbPool>) -> Result<impl Reply, Reject
     request_body = NewBook,
     responses(
         (status = 200, description = "Book updated successfully", body = Book),
+        (status = 400, description = "Invalid book data"),
         (status = 404, description = "Book not found"),
         (status = 500, description = "Internal server error")
     ),
@@ -70,16 +76,16 @@ pub async fn get_book(id: i32, db: Arc<db::DbPool>) -> Result<impl Reply, Reject
     ),
     tag = "Books"
 )]
-pub async fn update_book(
-    id: i32,
-    updated_book: NewBook,
-    db: Arc<db::DbPool>,
-) -> Result<impl Reply, Rejection> {
-    let book = db::update_book(&db, id, updated_book).map_err(|e| match e {
-        diesel::result::Error::NotFound => warp::reject::custom(Error::NotFound),
-        _ => warp::reject::custom(Error::DatabaseError(e)),
-    })?;
-    Ok(warp::reply::json(&book))
+pub async fn update_book(id: i32, updated_book: NewBook, db: Arc<db::DbPool>) -> Result<impl Reply, Rejection> {
+    if updated_book.title.is_empty() || updated_book.author.is_empty() {
+        return Err(warp::reject::custom(Error::InvalidData));
+    }
+
+    match db::update_book(&db, id, updated_book) {
+        Ok(book) => Ok(warp::reply::json(&book)),
+        Err(diesel::result::Error::NotFound) => Err(warp::reject::custom(Error::NotFound)),
+        Err(e) => Err(warp::reject::custom(Error::DatabaseError(e))),
+    }
 }
 
 #[utoipa::path(
@@ -96,12 +102,9 @@ pub async fn update_book(
     tag = "Books"
 )]
 pub async fn delete_book(id: i32, db: Arc<db::DbPool>) -> Result<impl Reply, Rejection> {
-    db::delete_book(&db, id).map_err(|e| match e {
-        diesel::result::Error::NotFound => warp::reject::custom(Error::NotFound),
-        _ => warp::reject::custom(Error::DatabaseError(e)),
-    })?;
-    Ok(warp::reply::with_status(
-        "Book deleted",
-        warp::http::StatusCode::NO_CONTENT,
-    ))
+    match db::delete_book(&db, id) {
+        Ok(_) => Ok(warp::reply::with_status("Book deleted", warp::http::StatusCode::NO_CONTENT)),
+        Err(diesel::result::Error::NotFound) => Err(warp::reject::custom(Error::NotFound)),
+        Err(e) => Err(warp::reject::custom(Error::DatabaseError(e))),
+    }
 }

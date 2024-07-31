@@ -7,8 +7,6 @@ mod handlers;
 mod models;
 mod schema;
 
-use errors::handle_rejection;
-
 use models::{Book, NewBook};
 use std::sync::Arc;
 use warp::Filter;
@@ -55,7 +53,7 @@ async fn main() {
     let pool = Arc::new(pool);
 
     let api = filters::books(pool);
-
+    
     let api_docs = warp::path("openapi.json")
         .and(warp::get())
         .map(|| warp::reply::json(&ApiDocs::openapi()));
@@ -94,7 +92,7 @@ async fn main() {
         .or(api_docs)
         .or(swagger_ui)
         .with(warp::cors().allow_any_origin())
-        .recover(handle_rejection);
+        .recover(errors::handle_rejection);
 
     println!("Server started at http://localhost:8001");
     println!("API documentation available at http://localhost:8001/docs/");
@@ -111,8 +109,8 @@ mod filters {
         db: Arc<db::DbPool>,
     ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
         get_books(db.clone())
-            .or(create_book(db.clone()))
             .or(get_book(db.clone()))
+            .or(create_book(db.clone()))
             .or(update_book(db.clone()))
             .or(delete_book(db))
     }
@@ -121,6 +119,8 @@ mod filters {
         db: Arc<db::DbPool>,
     ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
         warp::path("books")
+            // Careful! Omitting the following line would make this filter match requests to /books/:i32 as well.
+            .and(warp::path::end())        
             .and(warp::get())
             .and(with_db(db))
             .and_then(handlers::list_books)

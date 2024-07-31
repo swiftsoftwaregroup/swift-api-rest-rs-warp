@@ -1,6 +1,7 @@
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use dotenv::dotenv;
+use diesel::result::Error;
 
 use crate::models::{Book, NewBook};
 
@@ -19,7 +20,7 @@ pub fn create_connection_pool(database_url: &str) -> DbPool {
         .expect("Failed to create pool")
 }
 
-pub fn create_book(pool: &DbPool, new_book: NewBook) -> QueryResult<Book> {
+pub fn create_book(pool: &DbPool, new_book: NewBook) -> Result<Book, Error> {
     use crate::schema::books::dsl::*;
     let conn = &mut pool.get().unwrap();
     diesel::insert_into(books).values(&new_book).execute(conn)?;
@@ -27,24 +28,35 @@ pub fn create_book(pool: &DbPool, new_book: NewBook) -> QueryResult<Book> {
     books.order(id.desc()).first(conn)
 }
 
-pub fn get_all_books(pool: &DbPool) -> QueryResult<Vec<Book>> {
+pub fn get_all_books(pool: &DbPool) -> Result<Vec<Book>, Error> {
     use crate::schema::books::dsl::*;
     let conn = &mut pool.get().unwrap();
 
     books.load::<Book>(conn)
 }
 
-pub fn get_book(pool: &DbPool, book_id: i32) -> QueryResult<Book> {
+pub fn get_book(pool: &DbPool, book_id: i32) -> Result<Book, Error> {
     use crate::schema::books::dsl::*;
     let conn = &mut pool.get().unwrap();
 
-    books.filter(id.eq(Some(book_id))).first(conn)
+    let book = books.filter(id.eq(book_id)).first::<Book>(conn).optional()?;
+
+    match book {
+        Some(book) => Ok(book),
+        None => Err(Error::NotFound),
+    }
 }
 
-pub fn update_book(pool: &DbPool, book_id: i32, updated_book: NewBook) -> QueryResult<Book> {
+pub fn update_book(pool: &DbPool, book_id: i32, updated_book: NewBook) -> Result<Book, Error> {
     use crate::schema::books::dsl::*;
     let conn = &mut pool.get().unwrap();
-    diesel::update(books.filter(id.eq(Some(book_id))))
+    let target = books.filter(id.eq(book_id));
+
+    if target.first::<Book>(conn).optional()?.is_none() {
+        return Err(Error::NotFound)
+    }
+
+    diesel::update(target)
         .set((
             title.eq(updated_book.title),
             author.eq(updated_book.author),
@@ -53,11 +65,17 @@ pub fn update_book(pool: &DbPool, book_id: i32, updated_book: NewBook) -> QueryR
         ))
         .execute(conn)?;
 
-    books.filter(id.eq(Some(book_id))).first(conn)
+    target.first(conn)
 }
 
-pub fn delete_book(pool: &DbPool, book_id: i32) -> QueryResult<usize> {
+pub fn delete_book(pool: &DbPool, book_id: i32) -> Result<(), Error> {
     use crate::schema::books::dsl::*;
     let conn = &mut pool.get().unwrap();
-    diesel::delete(books.filter(id.eq(Some(book_id)))).execute(conn)
+    let affected_rows = diesel::delete(books.filter(id.eq(book_id))).execute(conn)?;
+    
+    if affected_rows == 0 {
+        return Err(Error::NotFound)
+    }
+
+    Ok(())
 }

@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'swift-api-rest-rs'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=swift-api-rest-rs",
+                    "--package=swift-api-rest-rs"
+                ],
+                "filter": {
+                    "name": "swift-api-rest-rs",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'swift-api-rest-rs'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=swift-api-rest-rs",
+                    "--package=swift-api-rest-rs"
+                ],
+                "filter": {
+                    "name": "swift-api-rest-rs",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
