@@ -1,8 +1,6 @@
 # swift-api-rest-rs-warp
 
-This project implements a simple API just to illustrate how one would go about implementing a REST API using [warp](https://github.com/seanmonstar/warp) and [Rust](https://www.rust-lang.org/). 
-
-> This repository is largely a copy of [swift-api-rest-rs](https://github.com/swiftsoftwaregroup/swift-api-rest-rs) but using Warp instead of Actix Web. 
+This project implements a simple API just to illustrate how one would go about implementing a REST API using [Warp](https://github.com/seanmonstar/warp) and [Rust](https://www.rust-lang.org/). This repository is largely a copy of [swift-api-rest-rs](https://github.com/swiftsoftwaregroup/swift-api-rest-rs) but using Warp instead of Actix Web. 
 
 ## Setup
 
