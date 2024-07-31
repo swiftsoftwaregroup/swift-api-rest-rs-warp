@@ -1,10 +1,10 @@
 use diesel::r2d2::{self, ConnectionManager};
 use diesel::sqlite::SqliteConnection;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use serde_json::json;
+use std::sync::Arc;
 use warp::test::request;
 use warp::Filter;
-use std::sync::Arc;
-use serde_json::json;
 
 use crate::{db, errors, filters, models};
 
@@ -28,11 +28,7 @@ async fn test_list_books() {
     let db_pool = setup_test_db();
     let api = filters::books(db_pool);
 
-    let response = request()
-        .method("GET")
-        .path("/books")
-        .reply(&api)
-        .await;
+    let response = request().method("GET").path("/books").reply(&api).await;
 
     assert_eq!(response.status(), 200);
 }

@@ -53,7 +53,7 @@ async fn main() {
     let pool = Arc::new(pool);
 
     let api = filters::books(pool);
-    
+
     let api_docs = warp::path("openapi.json")
         .and(warp::get())
         .map(|| warp::reply::json(&ApiDocs::openapi()));
@@ -120,7 +120,7 @@ mod filters {
     ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
         warp::path("books")
             // Careful! Omitting the following line would make this filter match requests to /books/:i32 as well.
-            .and(warp::path::end())        
+            .and(warp::path::end())
             .and(warp::get())
             .and(with_db(db))
             .and_then(handlers::list_books)

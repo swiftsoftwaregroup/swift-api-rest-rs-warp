@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
-use dotenv::dotenv;
 use diesel::result::Error;
+use dotenv::dotenv;
 
 use crate::models::{Book, NewBook};
 
@@ -39,7 +39,10 @@ pub fn get_book(pool: &DbPool, book_id: i32) -> Result<Book, Error> {
     use crate::schema::books::dsl::*;
     let conn = &mut pool.get().unwrap();
 
-    let book = books.filter(id.eq(book_id)).first::<Book>(conn).optional()?;
+    let book = books
+        .filter(id.eq(book_id))
+        .first::<Book>(conn)
+        .optional()?;
 
     match book {
         Some(book) => Ok(book),
@@ -53,7 +56,7 @@ pub fn update_book(pool: &DbPool, book_id: i32, updated_book: NewBook) -> Result
     let target = books.filter(id.eq(book_id));
 
     if target.first::<Book>(conn).optional()?.is_none() {
-        return Err(Error::NotFound)
+        return Err(Error::NotFound);
     }
 
     diesel::update(target)
@@ -72,9 +75,9 @@ pub fn delete_book(pool: &DbPool, book_id: i32) -> Result<(), Error> {
     use crate::schema::books::dsl::*;
     let conn = &mut pool.get().unwrap();
     let affected_rows = diesel::delete(books.filter(id.eq(book_id))).execute(conn)?;
-    
+
     if affected_rows == 0 {
-        return Err(Error::NotFound)
+        return Err(Error::NotFound);
     }
 
     Ok(())

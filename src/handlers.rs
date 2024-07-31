@@ -1,8 +1,8 @@
-use warp::{Reply, Rejection};
 use crate::db;
-use crate::models::NewBook;
 use crate::errors::Error;
+use crate::models::NewBook;
 use std::sync::Arc;
+use warp::{Rejection, Reply};
 
 #[utoipa::path(
     get,
@@ -76,7 +76,11 @@ pub async fn get_book(id: i32, db: Arc<db::DbPool>) -> Result<impl Reply, Reject
     ),
     tag = "Books"
 )]
-pub async fn update_book(id: i32, updated_book: NewBook, db: Arc<db::DbPool>) -> Result<impl Reply, Rejection> {
+pub async fn update_book(
+    id: i32,
+    updated_book: NewBook,
+    db: Arc<db::DbPool>,
+) -> Result<impl Reply, Rejection> {
     if updated_book.title.is_empty() || updated_book.author.is_empty() {
         return Err(warp::reject::custom(Error::InvalidData));
     }
@@ -103,7 +107,10 @@ pub async fn update_book(id: i32, updated_book: NewBook, db: Arc<db::DbPool>) ->
 )]
 pub async fn delete_book(id: i32, db: Arc<db::DbPool>) -> Result<impl Reply, Rejection> {
     match db::delete_book(&db, id) {
-        Ok(_) => Ok(warp::reply::with_status("Book deleted", warp::http::StatusCode::NO_CONTENT)),
+        Ok(_) => Ok(warp::reply::with_status(
+            "Book deleted",
+            warp::http::StatusCode::NO_CONTENT,
+        )),
         Err(diesel::result::Error::NotFound) => Err(warp::reject::custom(Error::NotFound)),
         Err(e) => Err(warp::reject::custom(Error::DatabaseError(e))),
     }
