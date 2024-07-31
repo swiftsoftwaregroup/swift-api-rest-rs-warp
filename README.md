@@ -143,16 +143,16 @@ Delete container and image:
 cargo init
 
 # add packages
-cargo add warp dotenv
-cargo add diesel --features sqlite,r2d2
+cargo add dotenv
+cargo add warp 
 
 cargo add serde --features derive
 cargo add serde_json
 cargo add chrono --features serde
 
 cargo add utoipa --features chrono
-cargo add utoipa-swagger-ui
 
+cargo add diesel --features sqlite,r2d2
 cargo add diesel_migrations
 
 # dev packages
@@ -169,4 +169,3 @@ cargo install cargo-watch
 # Test Coverage
 cargo install cargo-tarpaulin
 ```
-
