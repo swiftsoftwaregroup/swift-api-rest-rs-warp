@@ -3,6 +3,7 @@ use warp::reject::Reject;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[allow(clippy::enum_variant_names)]
     #[error("database error: {0}")]
     DatabaseError(#[from] diesel::result::Error),
     #[error("not found")]
