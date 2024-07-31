@@ -6,8 +6,8 @@ pushd $script_path/..
 
 tag="latest"
 
-image_name="swift-api-rs:$tag"
-container_name="swift-api-rs"
+image_name="swift-api-rs-warp:$tag"
+container_name="swift-api-rs-warp"
 
 echo "Delete old container ..."
 podman rm -f $container_name
